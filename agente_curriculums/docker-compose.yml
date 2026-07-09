@@ -1,0 +1,55 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DATABASE_NAME:-agente_curriculums}
+      MYSQL_USER: ${DATABASE_USER:-agente_user}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_root_me}
+    ports: ["${DATABASE_PORT:-3306}:3306"]
+    volumes: ["mysql_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-change_root_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes: ["ollama_data:/root/.ollama"]
+    ports: ["11434:11434"]
+    cpus: 4.0
+    mem_limit: 6g
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ["pull", "${OLLAMA_MODEL:-gemma4:e2b-it-qat}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_HOST: mysql
+      OLLAMA_BASE_URL: http://ollama:11434
+      MEDIA_ROOT: /app/media
+      ANALYSIS_BATCH_SIZE: 2
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py automatizar_pipeline --interval ${ANALYSIS_INTERVAL_SECONDS:-900}"]
+    volumes: ["./media:/app/media"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+volumes:
+  mysql_data:
+  ollama_data:

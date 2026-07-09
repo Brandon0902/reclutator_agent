@@ -1,0 +1,26 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Iniciar sesión · Talento AI</title>
+  <link rel="stylesheet" href="{% static 'vacantes/app.css' %}">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="brand-mark" aria-hidden="true">T</div>
+    <p class="eyebrow">PLATAFORMA DE RECLUTAMIENTO</p>
+    <h1>Talento <span>AI</span></h1>
+    <p class="login-copy">Convierte una vacante en un ranking explicable de candidatos.</p>
+    {% if form.errors %}<div class="alert error">Usuario o contraseña incorrectos.</div>{% endif %}
+    <form method="post" class="login-form">
+      {% csrf_token %}
+      <label>Usuario<input type="text" name="username" autocomplete="username" required autofocus></label>
+      <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="btn primary wide" type="submit">Entrar al espacio de trabajo</button>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    </form>
+  </main>
+</body>
+</html>

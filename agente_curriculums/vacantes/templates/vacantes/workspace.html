@@ -1,0 +1,99 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Talento AI · Vacantes</title>
+  <link rel="stylesheet" href="{% static 'vacantes/app.css' %}">
+</head>
+<body>
+  <div class="app-shell" id="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">T</div><div><strong>Talento <span>AI</span></strong><small>Recruiting workspace</small></div></div>
+      <button class="btn primary new-job" id="new-job">＋ Nueva vacante</button>
+      <div class="sidebar-heading"><span>VACANTES</span><button id="refresh-jobs" title="Actualizar">↻</button></div>
+      <nav class="job-list" id="job-list" aria-label="Vacantes"></nav>
+      <div class="sidebar-footer">
+        <div class="user-avatar">{{ request.user.username|slice:':1'|upper }}</div>
+        <div><strong>{{ request.user.username }}</strong><small>Reclutador</small></div>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button title="Cerrar sesión">↗</button></form>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <section class="empty-state" id="empty-state">
+        <div class="orb"><span>✦</span></div>
+        <p class="eyebrow">ASISTENTE DE SELECCIÓN</p>
+        <h1>Encuentra a la persona correcta,<br><em>con evidencia.</em></h1>
+        <p>Describe una vacante en lenguaje natural. El agente convertirá tus requisitos en una rúbrica, analizará los CV y explicará cada resultado.</p>
+        <button class="btn primary" id="empty-new">Crear mi primera vacante</button>
+        <div class="feature-row"><span>✓ Sin rechazo automático</span><span>✓ Evaluación auditable</span><span>✓ Datos locales</span></div>
+      </section>
+
+      <section class="workspace hidden" id="workspace">
+        <header class="topbar">
+          <div><p class="eyebrow">VACANTE</p><h2 id="job-title">Nueva conversación</h2></div>
+          <div class="status-pill" id="job-status">Borrador</div>
+        </header>
+
+        <div class="content-grid">
+          <section class="chat-column">
+            <div class="messages" id="messages"></div>
+            <div class="typing hidden" id="typing"><span></span><span></span><span></span><small>Gemma está estructurando la vacante…</small></div>
+            <form class="composer" id="message-form">
+              <textarea id="message-input" rows="2" placeholder="Describe el puesto, experiencia, habilidades obligatorias y deseables…" maxlength="10000"></textarea>
+              <button class="send-button" type="submit" title="Enviar">↑</button>
+              <div class="composer-hint">Enter para enviar · Shift + Enter para nueva línea</div>
+            </form>
+          </section>
+
+          <aside class="detail-column">
+            <div class="detail-tabs"><button class="active" data-tab="criteria">Criterios</button><button data-tab="progress">Progreso</button><button data-tab="ranking">Ranking</button></div>
+            <div class="tab-panel" id="tab-criteria">
+              <div class="panel-intro"><h3>Rúbrica propuesta</h3><p>Confirma que la interpretación refleje la vacante.</p></div>
+              <div id="criteria-empty" class="mini-empty">La propuesta aparecerá cuando el agente termine de analizar tu mensaje.</div>
+              <div id="criteria-content" class="hidden">
+                <div class="weight-total"><span>Peso total</span><strong id="weight-total">100%</strong></div>
+                <div id="criteria-list" class="criteria-list"></div>
+                <div id="questions-block" class="questions-block hidden"><strong>Preguntas del agente</strong><ul id="questions-list"></ul></div>
+                <button class="btn primary wide" id="confirm-job">Confirmar rúbrica</button>
+                <p class="safety-note">Al confirmar, la rúbrica queda congelada para garantizar auditoría.</p>
+              </div>
+            </div>
+            <div class="tab-panel hidden" id="tab-progress">
+              <div class="panel-intro"><h3>Progreso de evaluación</h3><p>El análisis se ejecuta localmente en segundo plano.</p></div>
+              <div id="progress-empty" class="mini-empty">Confirma la rúbrica para iniciar una evaluación.</div>
+              <button class="btn primary wide hidden" id="start-evaluation">Iniciar evaluación</button>
+              <div id="progress-content" class="hidden">
+                <div class="progress-ring" id="progress-ring"><strong id="progress-percent">0%</strong></div>
+                <div class="progress-stats"><div><strong id="stat-complete">0</strong><span>Completados</span></div><div><strong id="stat-processing">0</strong><span>En proceso</span></div><div><strong id="stat-pending">0</strong><span>Pendientes</span></div><div><strong id="stat-errors">0</strong><span>Errores</span></div><div><strong id="stat-total">0</strong><span>Total</span></div></div>
+                <button class="btn secondary wide hidden" id="retry-errors">Reintentar errores</button>
+              </div>
+            </div>
+            <div class="tab-panel hidden" id="tab-ranking">
+              <div class="panel-intro"><h3>Mejores coincidencias</h3><p>Ordenadas por puntuación, nunca rechazadas automáticamente.</p></div>
+              <div id="ranking-empty" class="mini-empty">El ranking aparecerá al completar candidatos.</div>
+              <div id="ranking-list" class="ranking-list"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="new-job-dialog">
+    <form method="dialog" class="dialog-card" id="new-job-form">
+      <button class="dialog-close" value="cancel" aria-label="Cerrar">×</button>
+      <p class="eyebrow">NUEVA VACANTE</p>
+      <h2>¿A quién estás buscando?</h2>
+      <p>Cuéntale al agente el contexto del puesto. Podrás refinar los criterios antes de confirmar.</p>
+      <textarea id="new-job-message" rows="7" maxlength="10000" placeholder="Ejemplo: Busco desarrollador Python con al menos 3 años de experiencia. Django es obligatorio; AWS e inglés son deseables…" required></textarea>
+      <button class="btn primary wide" id="create-job" value="default">Iniciar conversación</button>
+    </form>
+  </dialog>
+
+  <div class="toast-container" id="toasts" aria-live="polite"></div>
+  <script src="{% static 'vacantes/app.js' %}" defer></script>
+</body>
+</html>
