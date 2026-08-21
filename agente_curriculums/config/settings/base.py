@@ -14,13 +14,21 @@ env = environ.Env(
     ANALYSIS_INTERVAL_SECONDS=(int, 900),
     ANALYSIS_BATCH_SIZE=(int, 2),
     OLLAMA_TIMEOUT_SECONDS=(int, 600),
+    PUBLIC_FORM_MAX_PDF_SIZE_MB=(int, 10),
+    PUBLIC_FORM_RATE_LIMIT=(int, 5),
+    PUBLIC_FORM_IP_RATE_LIMIT=(int, 20),
+    PUBLIC_FORM_RATE_WINDOW_SECONDS=(int, 3600),
+    PRIVACY_NOTICE_URL=(str, ""),
+    TURNSTILE_ENABLED=(bool, False),
+    PDF_ANTIVIRUS_ENABLED=(bool, False),
+    CLAMAV_PORT=(int, 3310),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-development-only")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "testserver"])
-INSTALLED_APPS = ["django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles", "rest_framework", "django_filters", "documentos", "integraciones", "analisis", "vacantes"]
-MIDDLEWARE = ["django.middleware.security.SecurityMiddleware", "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware", "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware", "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware"]
+INSTALLED_APPS = ["django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles", "rest_framework", "django_filters", "documentos", "integraciones", "analisis", "vacantes", "postulaciones"]
+MIDDLEWARE = ["django.middleware.security.SecurityMiddleware", "whitenoise.middleware.WhiteNoiseMiddleware", "django.contrib.sessions.middleware.SessionMiddleware", "django.middleware.common.CommonMiddleware", "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware", "django.contrib.messages.middleware.MessageMiddleware", "django.middleware.clickjacking.XFrameOptionsMiddleware"]
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [BASE_DIR / "templates"], "APP_DIRS": True, "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages"]}}]
 WSGI_APPLICATION = "config.wsgi.application"
@@ -31,6 +39,10 @@ TIME_ZONE = "America/Mexico_City"
 USE_I18N = USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login/"
@@ -65,4 +77,15 @@ WHATSAPP_API_VERSION = WHATSAPP_GRAPH_VERSION
 WHATSAPP_VALIDATE_SIGNATURE = env("WHATSAPP_VALIDATE_SIGNATURE")
 WHATSAPP_MAX_DOCUMENT_SIZE_MB = env("WHATSAPP_MAX_DOCUMENT_SIZE_MB")
 WHATSAPP_WEBHOOK_MAX_BODY_KB = env("WHATSAPP_WEBHOOK_MAX_BODY_KB")
+PUBLIC_FORM_MAX_PDF_SIZE_MB = env("PUBLIC_FORM_MAX_PDF_SIZE_MB")
+PUBLIC_FORM_RATE_LIMIT = env("PUBLIC_FORM_RATE_LIMIT")
+PUBLIC_FORM_IP_RATE_LIMIT = env("PUBLIC_FORM_IP_RATE_LIMIT")
+PUBLIC_FORM_RATE_WINDOW_SECONDS = env("PUBLIC_FORM_RATE_WINDOW_SECONDS")
+PRIVACY_NOTICE_URL = env("PRIVACY_NOTICE_URL")
+TURNSTILE_ENABLED = env("TURNSTILE_ENABLED")
+TURNSTILE_SITE_KEY = env("TURNSTILE_SITE_KEY", default="")
+TURNSTILE_SECRET_KEY = env("TURNSTILE_SECRET_KEY", default="")
+PDF_ANTIVIRUS_ENABLED = env("PDF_ANTIVIRUS_ENABLED")
+CLAMAV_HOST = env("CLAMAV_HOST", default="127.0.0.1")
+CLAMAV_PORT = env("CLAMAV_PORT")
 LOGGING = {"version": 1, "disable_existing_loggers": False, "formatters": {"standard": {"format": "{asctime} {levelname} {name} {message}", "style": "{"}}, "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "standard"}}, "root": {"handlers": ["console"], "level": "INFO"}}

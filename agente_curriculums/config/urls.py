@@ -11,6 +11,7 @@ class HealthView(APIView):
 
 urlpatterns = [
     path("", include("vacantes.web_urls")),
+    path("", include("postulaciones.web_urls")),
     path("login/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("admin/", admin.site.urls),
@@ -18,6 +19,7 @@ urlpatterns = [
     path("api/documentos/", include("documentos.urls")),
     path("api/", include("analisis.urls")),
     path("api/vacantes/", include("vacantes.urls")),
+    path("api/postulaciones/", include("postulaciones.urls")),
     path("api/webhooks/", include("integraciones.urls")),
     path("api-auth/", include("rest_framework.urls")),
 ]

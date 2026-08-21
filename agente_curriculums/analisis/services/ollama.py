@@ -86,14 +86,32 @@ class OllamaClient:
             json={
                 "model": self.model,
                 "stream": False,
+                # Gemma 4 puede consumir todo num_predict en razonamiento interno
+                # y dejar content vacio. Las evaluaciones solo necesitan el JSON.
+                "think": False,
                 "format": schema,
-                "options": {"temperature": 0, "num_predict": 750, "num_ctx": 4096, "num_thread": 4},
+                "options": {"temperature": 0, "num_predict": 1500, "num_ctx": 4096, "num_thread": 4},
                 "messages": [{"role": "user", "content": prompt}],
             },
             timeout=self.timeout,
         )
         respuesta.raise_for_status()
-        return respuesta.json().get("message", {}).get("content", "")
+        datos = respuesta.json()
+        mensaje = datos.get("message", {})
+        contenido = mensaje.get("content", "")
+        if not contenido or not contenido.strip():
+            motivo = datos.get("done_reason", "desconocido")
+            tokens = datos.get("eval_count", 0)
+            razonamiento = len(mensaje.get("thinking", ""))
+            raise RespuestaOllamaInvalida(
+                "Ollama devolvio contenido vacio "
+                f"(motivo={motivo}, tokens={tokens}, caracteres_razonamiento={razonamiento})"
+            )
+        if datos.get("done_reason") == "length":
+            raise RespuestaOllamaInvalida(
+                f"Ollama trunco la respuesta al alcanzar {datos.get('eval_count', 0)} tokens"
+            )
+        return contenido
 
     def _reparar_json(self, contenido: str, schema: dict[str, Any]) -> dict:
         if not contenido or not contenido.strip():
@@ -101,7 +119,9 @@ class OllamaClient:
         reparado = self._llamar_modelo(
             (
                 "Repara la siguiente respuesta para que sea JSON valido y cumpla exactamente el esquema solicitado. "
-                "No agregues explicaciones, markdown ni texto fuera del JSON. Conserva los datos originales cuando sea posible.\n\n"
+                "No agregues explicaciones, markdown ni texto fuera del JSON. Conserva los datos originales cuando sea posible. "
+                "No uses ni infieras edad, genero, fotografia, estado civil, nacionalidad, domicilio, salud, religion "
+                "u otros atributos sensibles para ninguna puntuacion.\n\n"
                 f"RESPUESTA A REPARAR:\n{contenido[:12000]}"
             ),
             schema,

@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from documentos.models import OrigenDocumento
 class MensajeExternoProcesado(models.Model):
-    origen = models.CharField(max_length=12, choices=OrigenDocumento.choices)
+    origen = models.CharField(max_length=20, choices=OrigenDocumento.choices)
     id_mensaje = models.CharField(max_length=255)
     fecha_procesamiento = models.DateTimeField(default=timezone.now)
     estado = models.CharField(max_length=30, default="PROCESADO")
@@ -55,6 +55,10 @@ class MensajeWhatsApp(models.Model):
     nombre_perfil = models.CharField(max_length=255, blank=True)
     contenido_texto = models.TextField(blank=True)
     media_id = models.CharField(max_length=255, blank=True, db_index=True)
+    documento = models.ForeignKey(
+        "documentos.Documento", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="mensajes_whatsapp",
+    )
     nombre_archivo = models.CharField(max_length=255, blank=True)
     mime_type = models.CharField(max_length=100, blank=True)
     timestamp_meta = models.DateTimeField(null=True, blank=True)

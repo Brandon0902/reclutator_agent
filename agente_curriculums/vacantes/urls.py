@@ -1,11 +1,12 @@
 from django.urls import path
 
-from .views import ConfirmarVacanteView, EjecucionDetailView, EjecucionListView, IniciarEvaluacionView, MensajeListCreateView, RankingView, ReintentarEjecucionView, VacanteDetailView, VacanteListCreateView
+from .views import ConfirmarVacanteView, EjecucionDetailView, EjecucionListView, IniciarEvaluacionView, MensajeListCreateView, PublicarVacanteView, RankingView, ReintentarEjecucionView, VacanteDetailView, VacanteListCreateView
 
 
 urlpatterns = [
     path("", VacanteListCreateView.as_view()),
     path("<int:pk>/", VacanteDetailView.as_view()),
+    path("<int:pk>/publicar/", PublicarVacanteView.as_view()),
     path("<int:pk>/mensajes/", MensajeListCreateView.as_view()),
     path("<int:pk>/confirmar/", ConfirmarVacanteView.as_view()),
     path("<int:pk>/evaluar/", IniciarEvaluacionView.as_view()),

@@ -8,6 +8,7 @@ class OrigenDocumento(models.TextChoices):
     OUTLOOK = "OUTLOOK", "Outlook"
     WHATSAPP = "WHATSAPP", "WhatsApp"
     IMAP = "IMAP", "Correo IMAP"
+    FORMULARIO_WEB = "FORMULARIO_WEB", "Formulario web"
 class EstadoDocumento(models.TextChoices):
     RECIBIDO = "RECIBIDO", "Recibido"
     PENDIENTE_ANALISIS = "PENDIENTE_ANALISIS", "Pendiente de análisis"
@@ -23,7 +24,7 @@ def curriculum_upload_to(instance, filename):
     now = timezone.now()
     return f"curriculums/{now:%Y/%m}/{uuid.uuid4()}.pdf"
 class Documento(models.Model):
-    origen = models.CharField(max_length=12, choices=OrigenDocumento.choices)
+    origen = models.CharField(max_length=20, choices=OrigenDocumento.choices)
     id_mensaje_origen = models.CharField(max_length=255, blank=True)
     nombre_original = models.CharField(max_length=255)
     nombre_interno = models.CharField(max_length=255)
@@ -44,7 +45,7 @@ class Documento(models.Model):
     def __str__(self): return self.nombre_original
 class IntentoRecepcionDocumento(models.Model):
     documento = models.ForeignKey(Documento, on_delete=models.CASCADE, related_name="intentos")
-    origen = models.CharField(max_length=12, choices=OrigenDocumento.choices)
+    origen = models.CharField(max_length=20, choices=OrigenDocumento.choices)
     id_mensaje_origen = models.CharField(max_length=255, blank=True)
     remitente = models.CharField(max_length=255, blank=True)
     correo = models.EmailField(blank=True)

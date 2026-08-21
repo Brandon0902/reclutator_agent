@@ -34,11 +34,16 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes: ["clamav_data:/var/lib/clamav"]
   worker:
     build: .
     restart: unless-stopped
     env_file: [.env]
     environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
       DATABASE_HOST: mysql
       OLLAMA_BASE_URL: http://ollama:11434
       MEDIA_ROOT: /app/media
@@ -50,6 +55,43 @@ services:
         condition: service_healthy
       ollama-init:
         condition: service_completed_successfully
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DATABASE_HOST: mysql
+      OLLAMA_BASE_URL: http://ollama:11434
+      MEDIA_ROOT: /app/media
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,.trycloudflare.com}"
+      PDF_ANTIVIRUS_ENABLED: "${PDF_ANTIVIRUS_ENABLED:-true}"
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"]
+    ports: ["${WEB_PORT:-8001}:8000"]
+    volumes: ["./media:/app/media"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+  webhook-gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./deploy/whatsapp-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_started
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--url", "http://webhook-gateway:8080"]
+    depends_on:
+      webhook-gateway:
+        condition: service_started
 volumes:
   mysql_data:
   ollama_data:
+  clamav_data:

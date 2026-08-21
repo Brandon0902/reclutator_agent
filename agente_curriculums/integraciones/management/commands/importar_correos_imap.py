@@ -17,25 +17,31 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Importa adjuntos PDF no leídos desde un buzón IMAP"
+    help = "Importa adjuntos PDF desde un buzon IMAP"
 
     def add_arguments(self, parser):
-        parser.add_argument("--limit", type=int, default=20, help="Máximo de mensajes no leídos a revisar")
-        parser.add_argument("--dry-run", action="store_true", help="Comprueba conexión y cuenta mensajes sin procesarlos")
+        parser.add_argument("--limit", type=int, default=20, help="Maximo de mensajes a revisar")
+        parser.add_argument("--dry-run", action="store_true", help="Comprueba conexion y cuenta mensajes sin procesarlos")
+        parser.add_argument("--include-read", action="store_true", help="Incluye mensajes leidos; util para pruebas manuales")
 
     def handle(self, *args, **options):
         limit = options["limit"]
+        include_read = options["include_read"]
         if limit < 1:
             raise CommandError("--limit debe ser mayor que cero")
 
         contador = {"revisados": 0, "guardados": 0, "duplicados": 0, "ignorados": 0, "errores": 0}
-        logger.info("Comando importar_correos_imap ejecutado limit=%s dry_run=%s", limit, options["dry_run"])
+        logger.info(
+            "Comando importar_correos_imap ejecutado limit=%s dry_run=%s include_read=%s",
+            limit, options["dry_run"], include_read,
+        )
         try:
             with IMAPClient() as client:
-                uids = client.buscar_no_leidos(limit)
+                uids = client.buscar_todos(limit) if include_read else client.buscar_no_leidos(limit)
                 if options["dry_run"]:
+                    etiqueta = "Mensajes encontrados" if include_read else "No leidos encontrados"
                     self.stdout.write(self.style.SUCCESS(
-                        f"Conexión IMAP correcta | Carpeta: {client.folder} | No leídos encontrados: {len(uids)}"
+                        f"Conexion IMAP correcta | Carpeta: {client.folder} | {etiqueta}: {len(uids)}"
                     ))
                     return
 
@@ -50,8 +56,8 @@ class Command(BaseCommand):
                         continue
                     self._procesar_mensaje(client, uid, contador)
         except (ImproperlyConfigured, imaplib.IMAP4.error, OSError, ssl.SSLError) as exc:
-            logger.error("Error de conexión IMAP: %s", exc.__class__.__name__)
-            raise CommandError(f"No fue posible completar la conexión IMAP: {exc}") from exc
+            logger.error("Error de conexion IMAP: %s", exc.__class__.__name__)
+            raise CommandError(f"No fue posible completar la conexion IMAP: {exc}") from exc
 
         self.stdout.write(self.style.SUCCESS(
             "Revisados: {revisados} | Guardados: {guardados} | Duplicados: {duplicados} | "
@@ -89,7 +95,7 @@ class Command(BaseCommand):
                     contador["duplicados" if duplicado else "guardados"] += 1
                 except DocumentoInvalidoError as exc:
                     errores_adjuntos.append(f"{adjunto.nombre}: {exc}")
-                    logger.warning("Adjunto IMAP inválido uid=%s nombre=%s", uid, adjunto.nombre)
+                    logger.warning("Adjunto IMAP invalido uid=%s nombre=%s", uid, adjunto.nombre)
 
             if errores_adjuntos:
                 raise DocumentoInvalidoError("; ".join(errores_adjuntos))
@@ -105,7 +111,7 @@ class Command(BaseCommand):
                 except (imaplib.IMAP4.error, OSError) as exc:
                     MensajeExternoProcesado.objects.filter(
                         origen=OrigenDocumento.IMAP, id_mensaje=clave
-                    ).update(estado="ERROR", error="No se pudo marcar el mensaje como leído")
+                    ).update(estado="ERROR", error="No se pudo marcar el mensaje como leido")
                     raise exc
             logger.info("Mensaje IMAP procesado uid=%s adjuntos=%s", uid, len(mensaje.adjuntos_pdf))
         except Exception as exc:

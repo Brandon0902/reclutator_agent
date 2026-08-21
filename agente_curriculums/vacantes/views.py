@@ -34,6 +34,21 @@ class VacanteDetailView(generics.RetrieveAPIView):
         return Vacante.objects.filter(propietario=self.request.user).select_related("rubrica")
 
 
+class PublicarVacanteView(APIView):
+    def post(self, request, pk):
+        vacante = get_object_or_404(Vacante, pk=pk, propietario=request.user)
+        vacante.publicada = True
+        vacante.fecha_cierre = None
+        vacante.save(update_fields=["publicada", "fecha_cierre", "updated_at"])
+        return Response(VacanteSerializer(vacante).data)
+
+    def delete(self, request, pk):
+        vacante = get_object_or_404(Vacante, pk=pk, propietario=request.user)
+        vacante.publicada = False
+        vacante.save(update_fields=["publicada", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class MensajeListCreateView(APIView):
     def _vacante(self, request, pk):
         return get_object_or_404(Vacante, pk=pk, propietario=request.user)
