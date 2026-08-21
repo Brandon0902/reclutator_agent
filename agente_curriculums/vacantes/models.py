@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -39,6 +41,7 @@ class EstadoEvaluacion(models.TextChoices):
     PROCESANDO = "PROCESANDO", "Procesando"
     COMPLETADA = "COMPLETADA", "Completada"
     SIN_TEXTO = "SIN_TEXTO", "Sin texto"
+    OMITIDA_NO_RELEVANTE = "OMITIDA_NO_RELEVANTE", "Omitida: no relevante"
     ERROR = "ERROR", "Error"
 
 
@@ -50,6 +53,9 @@ class Vacante(models.Model):
     rubrica = models.ForeignKey(RubricaEvaluacion, on_delete=models.PROTECT, null=True, blank=True, related_name="vacantes")
     propuesta = models.JSONField(default=dict, blank=True)
     error = models.TextField(blank=True)
+    public_slug = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    publicada = models.BooleanField(default=False, db_index=True)
+    fecha_cierre = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -95,6 +101,7 @@ class EjecucionVacante(models.Model):
     total = models.PositiveIntegerField(default=0)
     completados = models.PositiveIntegerField(default=0)
     sin_texto = models.PositiveIntegerField(default=0)
+    omitidos = models.PositiveIntegerField(default=0)
     errores = models.PositiveIntegerField(default=0)
     error = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,6 +119,7 @@ class EvaluacionVacante(models.Model):
     analisis = models.OneToOneField("analisis.AnalisisDocumento", on_delete=models.PROTECT, null=True, blank=True, related_name="evaluacion_vacante")
     estado = models.CharField(max_length=20, choices=EstadoEvaluacion.choices, default=EstadoEvaluacion.PENDIENTE, db_index=True)
     error = models.TextField(blank=True)
+    motivo_omision = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)

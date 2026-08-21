@@ -4,14 +4,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Iniciar sesión · Talento AI</title>
+  <title>Iniciar sesión · JMABAUEN Talento</title>
   <link rel="stylesheet" href="{% static 'vacantes/app.css' %}">
 </head>
 <body class="login-page">
   <main class="login-card">
-    <div class="brand-mark" aria-hidden="true">T</div>
+    <div class="login-brand"><img class="brand-mark" src="{% static 'vacantes/jmabauen-icon.png' %}" alt="" aria-hidden="true"><strong>JMABAUEN</strong></div>
     <p class="eyebrow">PLATAFORMA DE RECLUTAMIENTO</p>
-    <h1>Talento <span>AI</span></h1>
+    <h1>Talento con <span>fundamento.</span></h1>
     <p class="login-copy">Convierte una vacante en un ranking explicable de candidatos.</p>
     {% if form.errors %}<div class="alert error">Usuario o contraseña incorrectos.</div>{% endif %}
     <form method="post" class="login-form">

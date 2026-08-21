@@ -53,3 +53,42 @@ def test_rechaza_respuesta_reparada_que_no_cumple_criterios(settings):
 
     with pytest.raises(RespuestaOllamaInvalida):
         cliente.evaluar("texto de cv", criterios())
+
+
+def test_llamada_desactiva_razonamiento_y_acepta_json(settings, monkeypatch):
+    settings.OLLAMA_BASE_URL = "http://ollama.test"
+    settings.OLLAMA_MODEL = "modelo-test"
+    settings.OLLAMA_TIMEOUT_SECONDS = 1
+    respuesta = Mock()
+    respuesta.raise_for_status.return_value = None
+    respuesta.json.return_value = {
+        "done_reason": "stop",
+        "eval_count": 100,
+        "message": {"content": json.dumps(respuesta_valida())},
+    }
+    post = Mock(return_value=respuesta)
+    monkeypatch.setattr("analisis.services.ollama.requests.post", post)
+
+    contenido = OllamaClient()._llamar_modelo("prompt", {"type": "object"})
+
+    assert json.loads(contenido) == respuesta_valida()
+    payload = post.call_args.kwargs["json"]
+    assert payload["think"] is False
+    assert payload["options"]["num_predict"] == 1500
+
+
+def test_llamada_reporta_respuesta_vacia_con_diagnostico(settings, monkeypatch):
+    settings.OLLAMA_BASE_URL = "http://ollama.test"
+    settings.OLLAMA_MODEL = "modelo-test"
+    settings.OLLAMA_TIMEOUT_SECONDS = 1
+    respuesta = Mock()
+    respuesta.raise_for_status.return_value = None
+    respuesta.json.return_value = {
+        "done_reason": "length",
+        "eval_count": 750,
+        "message": {"content": "", "thinking": "razonamiento interno"},
+    }
+    monkeypatch.setattr("analisis.services.ollama.requests.post", Mock(return_value=respuesta))
+
+    with pytest.raises(RespuestaOllamaInvalida, match=r"contenido vacio.*motivo=length.*tokens=750"):
+        OllamaClient()._llamar_modelo("prompt", {"type": "object"})

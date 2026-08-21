@@ -19,12 +19,12 @@ pytestmark = pytest.mark.django_db
 def pdf_texto(texto="Experiencia Python Django AWS " * 10):
     pdf = fitz.open(); pagina = pdf.new_page()
     for indice in range(10):
-        pagina.insert_text((72, 72 + indice * 18), "Experiencia profesional Python Django AWS proyectos resultados")
+        pagina.insert_text((72, 72 + indice * 18), texto)
     contenido = pdf.tobytes(); pdf.close(); return contenido
 
 
-def documento(nombre, estado=EstadoDocumento.PENDIENTE_ANALISIS):
-    contenido = pdf_texto()
+def documento(nombre, estado=EstadoDocumento.PENDIENTE_ANALISIS, texto=None):
+    contenido = pdf_texto(texto or "Experiencia profesional Python Django AWS proyectos resultados")
     return Documento.objects.create(
         origen=OrigenDocumento.MANUAL, nombre_original=f"{nombre}.pdf", nombre_interno=f"{nombre}.pdf",
         archivo=ContentFile(contenido, name=f"{nombre}.pdf"), mime_type="application/pdf",
@@ -75,6 +75,30 @@ def test_bloqueo_logico_no_reprocesa_y_error_es_auditable():
     segundo = procesar_evaluacion_vacante(evaluacion.id, cliente)
     assert primero.analisis_id == segundo.analisis_id
     assert cliente.evaluar.call_count == 1
+
+
+def test_prefiltro_omite_cv_irrelevante_sin_llamar_a_ollama():
+    vacante = vacante_confirmada()
+    vacante.descripcion = "Desarrollo Python con Django y AWS"
+    vacante.save(update_fields=["descripcion"])
+    documento("relevante")
+    documento("irrelevante", texto="Contabilidad fiscal auditoria financiera balances impuestos proveedores")
+    ejecucion = crear_ejecucion(vacante)
+    cliente = Mock()
+    cliente.evaluar.return_value = respuesta_ollama(vacante.rubrica.criterios.get().id)
+
+    for evaluacion in ejecucion.evaluaciones.filter(estado=EstadoEvaluacion.PENDIENTE):
+        procesar_evaluacion_vacante(evaluacion.id, cliente)
+
+    omitida = ejecucion.evaluaciones.get(documento__nombre_original="irrelevante.pdf")
+    relevante = ejecucion.evaluaciones.get(documento__nombre_original="relevante.pdf")
+    assert omitida.estado == EstadoEvaluacion.OMITIDA_NO_RELEVANTE
+    assert "no se encontraron coincidencias" in omitida.motivo_omision
+    assert relevante.estado == EstadoEvaluacion.COMPLETADA
+    assert cliente.evaluar.call_count == 1
+    ejecucion.refresh_from_db()
+    assert ejecucion.omitidos == 1
+    assert ejecucion.completados == 1
 
 
 def test_api_ejecucion_asincrona_y_aislada_por_propietario():

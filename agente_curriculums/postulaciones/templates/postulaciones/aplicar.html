@@ -1,0 +1,62 @@
+<!doctype html>
+{% load static %}
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% if vacante %}Aplicar · {{ vacante.titulo|default:"Vacante" }}{% else %}Enviar currículum{% endif %}</title>
+  <style>
+    :root{font-family:"Segoe UI",system-ui,sans-serif;color:#171717;background:#f3f1e9;--amarillo:#f4c900;--negro:#171717;--crema:#f3f1e9;--gris:#706e65;--linea:#d4d0c4}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background-color:var(--crema);background-image:linear-gradient(rgba(20,20,15,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(20,20,15,.028) 1px,transparent 1px);background-size:32px 32px;padding:42px 20px}.wrap{width:min(720px,100%);margin:0 auto;background:#fff;border-top:9px solid var(--amarillo);box-shadow:14px 14px 0 rgba(23,23,23,.11);padding:38px 42px 42px;position:relative}.brand{display:flex;align-items:center;gap:13px;padding-bottom:25px;margin-bottom:29px;border-bottom:1px solid var(--linea)}.brand img{width:46px;height:46px;object-fit:contain}.brand strong{display:block;font-size:17px;letter-spacing:.075em}.brand small{display:block;margin-top:3px;color:#77736a;font-size:9px;font-weight:700;letter-spacing:.16em}.eyebrow{margin:0 0 10px;color:#856700;font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}h1{margin:0 0 12px;font-size:clamp(30px,5vw,43px);line-height:1.05;letter-spacing:-.045em}h1 span{position:relative;z-index:0}h1 span:after{content:"";position:absolute;left:-2px;right:-4px;bottom:2px;height:8px;background:var(--amarillo);z-index:-1;transform:skew(-8deg)}.intro{color:var(--gris);font-size:15px;line-height:1.6;margin:0 0 29px}.field-label{display:block;font-size:12px;font-weight:800;letter-spacing:.055em;text-transform:uppercase;margin-bottom:9px}.file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.file-picker{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;border:1px solid #aaa69b;background:#faf9f5;min-height:58px;cursor:pointer;transition:.18s border-color,.18s box-shadow}.file-picker:hover,.file-input:focus+.file-picker{border-color:var(--negro);box-shadow:5px 5px 0 rgba(244,201,0,.52)}.file-action{align-self:stretch;display:flex;align-items:center;padding:0 19px;background:var(--negro);color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.file-name{padding:0 16px;color:#706e65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.file-name.selected{color:#171717;font-weight:600}.hint{display:block;color:#77736a;font-size:11px;margin-top:9px}.consent{display:flex;gap:11px;align-items:flex-start;margin-top:25px;font-size:13px;font-weight:400;line-height:1.52;cursor:pointer}.consent input{width:17px;height:17px;flex:0 0 auto;margin:2px 0 0;accent-color:var(--amarillo)}.consent a{color:#6f5700;font-weight:700}.submit{width:100%;margin-top:27px;padding:15px 20px;border:0;border-left:5px solid var(--amarillo);border-radius:0;background:var(--negro);color:var(--amarillo);font-family:inherit;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;cursor:pointer;transition:.18s transform,.18s box-shadow}.submit:hover{transform:translateY(-2px);box-shadow:6px 6px 0 rgba(244,201,0,.58)}.submit:disabled{opacity:.55;cursor:wait;transform:none;box-shadow:none}.error{color:#8d2925;background:#fff0ee;border-left:4px solid #b6362f;padding:11px 13px;margin-top:16px;font-size:13px}.success{color:#171717;background:#fff7c6;border-left:6px solid var(--amarillo);padding:20px;font-weight:700;line-height:1.5}.hp{position:absolute!important;left:-10000px!important}.turnstile{margin-top:18px}.secure-note{display:flex;align-items:center;gap:7px;color:#858178;font-size:10px;margin-top:18px}.secure-note:before{content:"✓";display:grid;place-items:center;width:17px;height:17px;background:var(--amarillo);color:#171717;font-weight:900}.closed{color:#706e65}.closed h1{color:#171717}@media(max-width:600px){body{padding:18px 12px}.wrap{padding:27px 21px 30px;box-shadow:7px 7px 0 rgba(23,23,23,.11)}.brand{margin-bottom:24px;padding-bottom:20px}.file-picker{grid-template-columns:1fr}.file-action{min-height:47px;justify-content:center}.file-name{padding:13px 15px;text-align:center}.consent{font-size:12px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand">
+      <img src="{% static 'vacantes/jmabauen-icon.png' %}" alt="">
+      <div><strong>JMABAUEN</strong><small>TALENTO &amp; SELECCIÓN</small></div>
+    </header>
+    {% if cerrada %}
+      <section class="closed"><h1>Vacante no disponible</h1><p>Esta vacante ya no acepta postulaciones.</p></section>
+    {% else %}
+      <p class="eyebrow">Recepción de currículums</p>
+      <h1>{% if vacante %}{{ vacante.titulo|default:"Oportunidad laboral" }}{% else %}Envía tu <span>currículum</span>{% endif %}</h1>
+      <p class="intro">{% if vacante %}{{ vacante.descripcion|linebreaksbr }}{% else %}Adjunta tu currículum en formato PDF. Nuestro equipo de Talento y Selección lo guardará para considerarlo en procesos de reclutamiento.{% endif %}</p>
+      <form id="application-form" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% if not modo_curriculum %}
+          <label>Nombre completo<input name="nombre_completo" required maxlength="200" autocomplete="name"></label>
+          <label>Número de WhatsApp<input name="telefono_whatsapp" required maxlength="50" autocomplete="tel"></label>
+          <label>Correo electrónico<input name="correo" type="email" required autocomplete="email"></label>
+          <input name="vacante_interes" type="hidden" value="{{ vacante.titulo }}">
+        {% endif %}
+        <span class="field-label">Currículum en PDF</span>
+        <input class="file-input" id="archivo" name="archivo" type="file" accept="application/pdf,.pdf" required>
+        <label class="file-picker" for="archivo">
+          <span class="file-action">Seleccionar archivo</span>
+          <span class="file-name" id="file-name">Ningún archivo seleccionado</span>
+        </label>
+        <small class="hint">Solo archivos PDF de hasta {{ max_pdf_mb }} MB.</small>
+        {% if modo_curriculum %}
+          <label class="consent"><input name="consentimiento" type="checkbox" value="true" required> <span>{% if privacy_notice_url %}He leído el <a href="{{ privacy_notice_url }}" target="_blank" rel="noopener">aviso de privacidad</a> y autorizo{% else %}Autorizo{% endif %} el tratamiento de los datos contenidos en mi currículum para procesos de reclutamiento y selección.</span></label>
+        {% else %}
+          <label class="consent"><input name="consentimiento" type="checkbox" value="true" required> Acepto el tratamiento de mis datos personales para fines de reclutamiento.</label>
+        {% endif %}
+        <input class="hp" name="website" tabindex="-1" autocomplete="off">
+        {% if turnstile_enabled %}<div class="turnstile cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>{% endif %}
+        <button class="submit" type="submit">Enviar currículum</button>
+        <div id="message" role="alert"></div>
+        <div class="secure-note">Tu archivo se almacena de forma privada y segura.</div>
+      </form>
+    {% endif %}
+  </main>
+  <script>
+    const fileInput=document.getElementById('archivo');
+    const fileName=document.getElementById('file-name');
+    if(fileInput&&fileName){fileInput.addEventListener('change',()=>{const selected=fileInput.files[0];fileName.textContent=selected?selected.name:'Ningún archivo seleccionado';fileName.classList.toggle('selected',Boolean(selected))})}
+    const form=document.getElementById('application-form');
+    if(form){form.addEventListener('submit',async(event)=>{event.preventDefault();const message=document.getElementById('message');message.className='';message.textContent='Enviando…';const button=form.querySelector('button');button.disabled=true;try{const body=new FormData(form);const turnstile=body.get('cf-turnstile-response');if(turnstile)body.set('turnstile_token',turnstile);const response=await fetch('{{ postulacion_api_url }}',{method:'POST',body,headers:{'X-CSRFToken':document.cookie.split('; ').find(x=>x.startsWith('csrftoken='))?.split('=').slice(1).join('=')||''}});const data=await response.json();if(!response.ok)throw new Error(data.detail||Object.values(data).flat().join(' ')||'No se pudo enviar');form.innerHTML='<div class="success">'+(data.message||'Tu currículum fue guardado correctamente.')+'</div>'}catch(error){message.className='error';message.textContent=error.message;button.disabled=false;if(window.turnstile)window.turnstile.reset()}})}
+  </script>
+  {% if turnstile_enabled %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}
+</body>
+</html>

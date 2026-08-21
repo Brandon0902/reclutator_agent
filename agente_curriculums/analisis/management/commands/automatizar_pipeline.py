@@ -25,6 +25,11 @@ class Command(BaseCommand):
 
         while True:
             try:
+                call_command("procesar_mensajes_whatsapp", limit=20)
+            except Exception:
+                logger.exception("Fallo el ciclo de mensajes WhatsApp")
+
+            try:
                 call_command("procesar_conversaciones", limit=2)
             except Exception:
                 logger.exception("Fallo el ciclo de conversaciones")

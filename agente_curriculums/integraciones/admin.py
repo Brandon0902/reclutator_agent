@@ -29,7 +29,7 @@ class MensajeWhatsAppAdmin(admin.ModelAdmin):
     search_fields = ["wamid", "nombre_archivo"]
     readonly_fields = [
         "evento", "wamid", "direccion", "tipo", "wa_id", "nombre_perfil", "contenido_texto",
-        "media_id", "nombre_archivo", "mime_type", "timestamp_meta", "estado", "error",
+        "media_id", "nombre_archivo", "mime_type", "documento", "timestamp_meta", "estado", "error",
         "recibido_at", "procesado_at",
     ]
 

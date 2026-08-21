@@ -4,14 +4,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Talento AI · Vacantes</title>
+  <title>JMABAUEN Talento · Vacantes</title>
   <link rel="stylesheet" href="{% static 'vacantes/app.css' %}">
 </head>
 <body>
   <div class="app-shell" id="app">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">T</div><div><strong>Talento <span>AI</span></strong><small>Recruiting workspace</small></div></div>
+      <div class="brand"><img class="brand-mark" src="{% static 'vacantes/jmabauen-icon.png' %}" alt="" aria-hidden="true"><div><strong>JMABAUEN</strong><small>TALENTO &amp; SELECCIÓN</small></div></div>
       <button class="btn primary new-job" id="new-job">＋ Nueva vacante</button>
+      <a class="btn secondary new-job" href="/aplicar/" target="_blank" rel="noopener">Subir currículum</a>
       <div class="sidebar-heading"><span>VACANTES</span><button id="refresh-jobs" title="Actualizar">↻</button></div>
       <nav class="job-list" id="job-list" aria-label="Vacantes"></nav>
       <div class="sidebar-footer">
@@ -23,9 +24,9 @@
 
     <main class="main-panel">
       <section class="empty-state" id="empty-state">
-        <div class="orb"><span>✦</span></div>
-        <p class="eyebrow">ASISTENTE DE SELECCIÓN</p>
-        <h1>Encuentra a la persona correcta,<br><em>con evidencia.</em></h1>
+        <div class="hero-badge"><span>01</span><strong>RECLUTAMIENTO<br>INTELIGENTE</strong></div>
+        <p class="eyebrow">JMABAUEN · ASISTENTE DE SELECCIÓN</p>
+        <h1>Decisiones de talento<br><em>con fundamento.</em></h1>
         <p>Describe una vacante en lenguaje natural. El agente convertirá tus requisitos en una rúbrica, analizará los CV y explicará cada resultado.</p>
         <button class="btn primary" id="empty-new">Crear mi primera vacante</button>
         <div class="feature-row"><span>✓ Sin rechazo automático</span><span>✓ Evaluación auditable</span><span>✓ Datos locales</span></div>
@@ -34,7 +35,7 @@
       <section class="workspace hidden" id="workspace">
         <header class="topbar">
           <div><p class="eyebrow">VACANTE</p><h2 id="job-title">Nueva conversación</h2></div>
-          <div class="status-pill" id="job-status">Borrador</div>
+          <div><div class="status-pill" id="job-status">Borrador</div><button class="btn secondary hidden" id="publish-job" type="button">Publicar enlace</button><a class="hidden" id="public-job-link" target="_blank" rel="noopener">Abrir formulario</a><a class="btn secondary" href="/postulaciones/">Postulaciones RH</a></div>
         </header>
 
         <div class="content-grid">
@@ -54,7 +55,15 @@
               <div class="panel-intro"><h3>Rúbrica propuesta</h3><p>Confirma que la interpretación refleje la vacante.</p></div>
               <div id="criteria-empty" class="mini-empty">La propuesta aparecerá cuando el agente termine de analizar tu mensaje.</div>
               <div id="criteria-content" class="hidden">
-                <div class="weight-total"><span>Peso total</span><strong id="weight-total">100%</strong></div>
+                <div class="rubric-dashboard" aria-label="Resumen de la rúbrica">
+                  <div class="rubric-kpis">
+                    <div class="rubric-kpi primary"><span>Peso total</span><strong id="weight-total">100%</strong></div>
+                    <div class="rubric-kpi"><span>Obligatorios</span><strong id="required-total">0</strong></div>
+                    <div class="rubric-kpi"><span>Mayor peso</span><strong id="top-weight">0%</strong></div>
+                    <div class="rubric-kpi"><span>Preguntas</span><strong id="questions-total">0</strong></div>
+                  </div>
+                  <div class="rubric-distribution" id="rubric-distribution" aria-label="Distribución de pesos"></div>
+                </div>
                 <div id="criteria-list" class="criteria-list"></div>
                 <div id="questions-block" class="questions-block hidden"><strong>Preguntas del agente</strong><ul id="questions-list"></ul></div>
                 <button class="btn primary wide" id="confirm-job">Confirmar rúbrica</button>
@@ -67,7 +76,8 @@
               <button class="btn primary wide hidden" id="start-evaluation">Iniciar evaluación</button>
               <div id="progress-content" class="hidden">
                 <div class="progress-ring" id="progress-ring"><strong id="progress-percent">0%</strong></div>
-                <div class="progress-stats"><div><strong id="stat-complete">0</strong><span>Completados</span></div><div><strong id="stat-processing">0</strong><span>En proceso</span></div><div><strong id="stat-pending">0</strong><span>Pendientes</span></div><div><strong id="stat-errors">0</strong><span>Errores</span></div><div><strong id="stat-total">0</strong><span>Total</span></div></div>
+                <div class="progress-stats"><div><strong id="stat-complete">0</strong><span>Completados</span></div><div><strong id="stat-processing">0</strong><span>En proceso</span></div><div><strong id="stat-pending">0</strong><span>Pendientes</span></div><div><strong id="stat-skipped">0</strong><span>Omitidos</span></div><div><strong id="stat-errors">0</strong><span>Errores</span></div><div><strong id="stat-total">0</strong><span>Total</span></div></div>
+                <div class="omitted-summary hidden" id="omitted-summary"><strong>CV omitidos por el prefiltro</strong><ul id="omitted-list"></ul></div>
                 <button class="btn secondary wide hidden" id="retry-errors">Reintentar errores</button>
               </div>
             </div>
@@ -83,13 +93,13 @@
   </div>
 
   <dialog id="new-job-dialog">
-    <form method="dialog" class="dialog-card" id="new-job-form">
-      <button class="dialog-close" value="cancel" aria-label="Cerrar">×</button>
+    <form class="dialog-card" id="new-job-form" novalidate>
+      <button class="dialog-close" id="new-job-close" type="button" formnovalidate aria-label="Cerrar">×</button>
       <p class="eyebrow">NUEVA VACANTE</p>
       <h2>¿A quién estás buscando?</h2>
       <p>Cuéntale al agente el contexto del puesto. Podrás refinar los criterios antes de confirmar.</p>
-      <textarea id="new-job-message" rows="7" maxlength="10000" placeholder="Ejemplo: Busco desarrollador Python con al menos 3 años de experiencia. Django es obligatorio; AWS e inglés son deseables…" required></textarea>
-      <button class="btn primary wide" id="create-job" value="default">Iniciar conversación</button>
+      <textarea id="new-job-message" rows="7" maxlength="10000" placeholder="Ejemplo: Busco desarrollador Python con al menos 3 años de experiencia. Django es obligatorio; AWS e inglés son deseables…"></textarea>
+      <button class="btn primary wide" id="create-job" type="submit" value="default">Iniciar conversación</button>
     </form>
   </dialog>
 

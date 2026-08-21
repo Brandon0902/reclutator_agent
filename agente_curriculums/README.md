@@ -20,7 +20,7 @@ python manage.py crear_grupos_iniciales
 python manage.py runserver
 ```
 
-Admin: `http://127.0.0.1:8000/admin/`. Salud: `/api/health/`. API autenticada: `/api/documentos/`, `/api/documentos/upload/`, `/api/documentos/{id}/`, `/api/documentos/{id}/archivo/`.
+Admin en Docker: `http://127.0.0.1:8001/admin/` (puerto configurable con `WEB_PORT`). Salud: `/api/health/`. API autenticada: `/api/documentos/`, `/api/documentos/upload/`, `/api/documentos/{id}/`, `/api/documentos/{id}/archivo/`.
 
 ```bash
 curl -b cookies.txt -F "archivo=@CV.pdf;type=application/pdf" http://127.0.0.1:8000/api/documentos/upload/
@@ -54,9 +54,19 @@ Los mensajes con PDFs procesados se marcan como leídos; los mensajes sin PDF o 
 
 Para Microsoft 365 se conserva `python manage.py importar_correos_outlook`.
 
-Para Microsoft complete tenant, client, secret y buzón, y conceda permisos Graph. Para Meta complete las variables `WHATSAPP_*`, configure `/api/webhooks/whatsapp/` como callback HTTPS y mantenga activa la validación de firma. Consulte [docs/whatsapp_meta.md](docs/whatsapp_meta.md). En los entregables 1 y 2 el webhook registra texto y metadatos documentales sin descargar todavía el PDF.
+Para Microsoft complete tenant, client, secret y buzón, y conceda permisos Graph. Para Meta complete las variables `WHATSAPP_*`, configure `/api/webhooks/whatsapp/` como callback HTTPS y mantenga activa la validación de firma. Consulte [docs/whatsapp_meta.md](docs/whatsapp_meta.md). El webhook registra los eventos y el worker descarga, valida y almacena los documentos PDF de forma asíncrona.
 
 Pendiente para etapas posteriores: almacenamiento de objetos, OCR e interfaz visual para reclutadores.
+
+## Recepción pública de currículums
+
+El banco general de currículums se alimenta mediante una URL pública fija que no requiere autenticación:
+
+`/aplicar/`
+
+El formulario solicita únicamente un currículum PDF y lo guarda directamente en el banco general de documentos, sin autenticación y sin depender de Meta o WhatsApp. Después, una vacante creada con el agente puede evaluar los documentos guardados. Las rutas anteriores por UUID se conservan internamente por compatibilidad, pero no son necesarias para este flujo.
+
+Docker ejecuta `web` y `worker` con configuración de producción y se niega a iniciar con una `DJANGO_SECRET_KEY` débil. Antes de levantar los servicios, sustituya `change_me` por una clave aleatoria de al menos 50 caracteres y configure `DJANGO_CSRF_TRUSTED_ORIGINS` con el dominio HTTPS definitivo. El gateway público limita las cargas a 20 MB; ClamAV está habilitado por defecto en Compose y Turnstile se activa mediante sus variables de entorno.
 
 ## Análisis local con Gemma 4
 

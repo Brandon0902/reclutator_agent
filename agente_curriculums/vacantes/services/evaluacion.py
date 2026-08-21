@@ -8,6 +8,7 @@ from documentos.models import Documento, EstadoDocumento
 from vacantes.models import (
     EjecucionVacante, EstadoEjecucion, EstadoEvaluacion, EstadoVacante, EvaluacionVacante, MensajeVacante, RolMensaje, Vacante,
 )
+from .prefiltro import evaluar_relevancia, motivo_no_relevante
 
 
 @transaction.atomic
@@ -19,7 +20,10 @@ def crear_ejecucion(vacante: Vacante) -> EjecucionVacante:
     if activa:
         raise ValueError("La vacante ya tiene una ejecución activa")
     numero = (vacante.ejecuciones.aggregate(Max("numero"))["numero__max"] or 0) + 1
-    documentos = list(Documento.objects.all().order_by("id"))
+    documentos_qs = Documento.objects.filter(postulaciones__vacante=vacante).distinct()
+    if not documentos_qs.exists():
+        documentos_qs = Documento.objects.all()
+    documentos = list(documentos_qs.order_by("id"))
     ejecucion = EjecucionVacante.objects.create(vacante=vacante, numero=numero, total=len(documentos))
     EvaluacionVacante.objects.bulk_create([
         EvaluacionVacante(
@@ -40,11 +44,13 @@ def _actualizar_ejecucion(ejecucion_id: int) -> EjecucionVacante:
         conteos = ejecucion.evaluaciones.aggregate(
             completados=Count("id", filter=Q(estado=EstadoEvaluacion.COMPLETADA)),
             sin_texto=Count("id", filter=Q(estado=EstadoEvaluacion.SIN_TEXTO)),
+            omitidos=Count("id", filter=Q(estado=EstadoEvaluacion.OMITIDA_NO_RELEVANTE)),
             errores=Count("id", filter=Q(estado=EstadoEvaluacion.ERROR)),
             pendientes=Count("id", filter=Q(estado__in=[EstadoEvaluacion.PENDIENTE, EstadoEvaluacion.PROCESANDO])),
         )
         ejecucion.completados = conteos["completados"]
         ejecucion.sin_texto = conteos["sin_texto"]
+        ejecucion.omitidos = conteos["omitidos"]
         ejecucion.errores = conteos["errores"]
         if conteos["pendientes"]:
             ejecucion.estado = EstadoEjecucion.PROCESANDO if ejecucion.started_at else EstadoEjecucion.PENDIENTE
@@ -98,6 +104,14 @@ def procesar_evaluacion_vacante(evaluacion_id: int, cliente=None) -> EvaluacionV
             evaluacion.error = ""
             evaluacion.save(update_fields=["estado", "started_at", "error"])
             EjecucionVacante.objects.filter(pk=evaluacion.ejecucion_id, started_at__isnull=True).update(started_at=timezone.now(), estado=EstadoEjecucion.PROCESANDO)
+            relevante, datos_prefiltro = evaluar_relevancia(evaluacion.ejecucion.vacante, evaluacion.documento)
+            if not relevante:
+                evaluacion.estado = EstadoEvaluacion.OMITIDA_NO_RELEVANTE
+                evaluacion.motivo_omision = motivo_no_relevante(datos_prefiltro)
+                evaluacion.completed_at = timezone.now()
+                evaluacion.save(update_fields=["estado", "motivo_omision", "completed_at"])
+                _actualizar_ejecucion(evaluacion.ejecucion_id)
+                return evaluacion
             analisis = crear_analisis(evaluacion.documento, evaluacion.ejecucion.vacante.rubrica)
             evaluacion.analisis = analisis
             evaluacion.save(update_fields=["analisis"])

@@ -104,6 +104,15 @@ class IMAPClient:
         uids = datos[0].split() if datos and datos[0] else []
         return [uid.decode("ascii") for uid in uids[:limit]]
 
+    def buscar_todos(self, limit: int) -> list[str]:
+        if not self.connection:
+            raise RuntimeError("El cliente IMAP no esta conectado")
+        estado, datos = self.connection.uid("search", None, "ALL")
+        if estado != "OK":
+            raise imaplib.IMAP4.error("No se pudieron buscar todos los mensajes")
+        uids = datos[0].split() if datos and datos[0] else []
+        return [uid.decode("ascii") for uid in uids[:limit]]
+
     def clave_mensaje(self, uid: str) -> str:
         return f"{self.uidvalidity}:{uid}"
 

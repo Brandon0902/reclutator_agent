@@ -28,6 +28,7 @@ def cliente_mock(mock_client, uids: list[str]):
     cliente.folder = "INBOX"
     cliente.uidvalidity = "99"
     cliente.buscar_no_leidos.return_value = uids
+    cliente.buscar_todos.return_value = uids
     cliente.clave_mensaje.side_effect = lambda uid: f"99:{uid}"
     mock_client.return_value.__enter__.return_value = cliente
     return cliente
@@ -38,7 +39,7 @@ def cliente_mock(mock_client, uids: list[str]):
 def test_dry_run_no_modifica_buzon_ni_base(mock_client, capsys):
     cliente = cliente_mock(mock_client, ["1", "2"])
     call_command("importar_correos_imap", "--dry-run", "--limit", "2")
-    assert "No leídos encontrados: 2" in capsys.readouterr().out
+    assert "No leidos encontrados: 2" in capsys.readouterr().out
     cliente.obtener_mensaje.assert_not_called()
     cliente.marcar_como_leido.assert_not_called()
     assert MensajeExternoProcesado.objects.count() == 0
@@ -56,6 +57,20 @@ def test_importa_pdf_y_marca_mensaje_leido(mock_client, pdf):
     assert documento.id_mensaje_origen == "99:1"
     assert MensajeExternoProcesado.objects.get().estado == "PROCESADO"
     cliente.marcar_como_leido.assert_called_once_with("1")
+
+
+@pytest.mark.django_db
+@patch("integraciones.management.commands.importar_correos_imap.IMAPClient")
+def test_include_read_busca_todos_y_no_reprocesa_procesados(mock_client, pdf):
+    cliente = cliente_mock(mock_client, ["1", "2"])
+    MensajeExternoProcesado.objects.create(origen=OrigenDocumento.IMAP, id_mensaje="99:1", estado="PROCESADO")
+    cliente.obtener_mensaje.return_value = mensaje("2", [AdjuntoIMAP("cv.pdf", "application/pdf", pdf)])
+
+    call_command("importar_correos_imap", "--include-read", "--limit", "2")
+
+    cliente.buscar_todos.assert_called_once_with(2)
+    cliente.obtener_mensaje.assert_called_once_with("2")
+    assert Documento.objects.count() == 1
 
 
 @pytest.mark.django_db
