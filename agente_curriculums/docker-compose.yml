@@ -64,7 +64,7 @@ services:
       DATABASE_HOST: mysql
       OLLAMA_BASE_URL: http://ollama:11434
       MEDIA_ROOT: /app/media
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,.trycloudflare.com"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,.trycloudflare.com}"
       PDF_ANTIVIRUS_ENABLED: "${PDF_ANTIVIRUS_ENABLED:-true}"
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
