@@ -30,7 +30,7 @@
     $('empty-state').classList.add('hidden');$('workspace').classList.remove('hidden'); renderJobs(); renderHeader();
     await Promise.all([loadMessages(),loadExecutions()]); renderCriteria(); schedulePoll();
   }
-  function renderHeader(){$('job-title').textContent=state.current.titulo||'Nueva conversación';$('job-status').textContent=statusLabels[state.current.estado]||state.current.estado;const publish=$('publish-job');const link=$('public-job-link');publish.classList.toggle('hidden',!!state.current.publicada);link.classList.toggle('hidden',!state.current.publicada);if(state.current.publicada){link.href=`/aplicar/${state.current.public_slug}/`;link.textContent='Abrir formulario';}publish.onclick=async()=>{try{state.current=await api(`/api/vacantes/${state.current.id}/publicar/`,{method:'POST',body:'{}'});renderHeader();toast('Vacante publicada. Puedes copiar el enlace.');}catch(error){toast(error.message,true);}};}
+  function renderHeader(){$('job-title').textContent=state.current.titulo||'Nueva conversación';$('job-status').textContent=statusLabels[state.current.estado]||state.current.estado;}
 
   async function loadMessages(){
     const messages=await api(`/api/vacantes/${state.current.id}/mensajes/`);
